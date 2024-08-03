@@ -1,13 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ably Chat App</title>
+  <title>쿼터파이 채팅</title>
   <script src="https://cdn.ably.io/lib/ably.min-1.js"></script>
 </head>
 <body>
   <h1>Ably Chat App</h1>
+  <div>
+    <input type="text" id="nicknameInput" placeholder="Enter your nickname">
+  </div>
   <div id="chatbox"></div>
   <input type="text" id="messageInput" placeholder="Type a message...">
   <button onclick="sendMessage()">Send</button>
@@ -19,16 +22,44 @@
 
     // 메시지 수신
     channel.subscribe('message', function(message) {
-      var messageElement = document.createElement("div");
-      messageElement.textContent = message.data;
-      document.getElementById("chatbox").appendChild(messageElement);
+      displayMessage(message);
     });
 
     // 메시지 전송
     function sendMessage() {
+      var nickname = document.getElementById("nicknameInput").value;
       var message = document.getElementById("messageInput").value;
-      channel.publish('message', message);
-      document.getElementById("messageInput").value = ""; // 입력창 비우기
+      var timestamp = Date.now();
+      
+      if (nickname && message) {
+        channel.publish('message', { nickname: nickname, text: message, timestamp: timestamp });
+        document.getElementById("messageInput").value = ""; // 입력창 비우기
+      } else {
+        alert('Please enter a nickname and a message.');
+      }
+    }
+
+    // 메시지 출력
+    function displayMessage(message) {
+      var data = message.data;
+      var messageElement = document.createElement("div");
+      var timeAgo = getTimeAgo(data.timestamp);
+      messageElement.textContent = `[${data.nickname}] ${data.text} (${timeAgo} ago)`;
+      document.getElementById("chatbox").appendChild(messageElement);
+    }
+
+    // 경과 시간 계산
+    function getTimeAgo(timestamp) {
+      var now = Date.now();
+      var seconds = Math.floor((now - timestamp) / 1000);
+      var minutes = Math.floor(seconds / 60);
+      var hours = Math.floor(minutes / 60);
+      var days = Math.floor(hours / 24);
+
+      if (days > 0) return days + " days";
+      if (hours > 0) return hours + " hours";
+      if (minutes > 0) return minutes + " minutes";
+      return seconds + " seconds";
     }
   </script>
 </body>
