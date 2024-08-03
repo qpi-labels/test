@@ -1,10 +1,66 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>쿼터파이 채팅</title>
+  <title>Ably Chat App</title>
   <script src="https://cdn.ably.io/lib/ably.min-1.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    #chatbox {
+      border: 1px solid #ddd;
+      background: #fff;
+      padding: 10px;
+      height: 400px;
+      overflow-y: scroll;
+      margin-bottom: 20px;
+    }
+    .message {
+      border-bottom: 1px solid #ddd;
+      padding: 10px;
+    }
+    .message:last-child {
+      border-bottom: none;
+    }
+    #messageInput, #nicknameInput {
+      width: calc(100% - 110px);
+      padding: 10px;
+      margin: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100px;
+      padding: 10px;
+      margin: 5px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .message {
+      margin-bottom: 10px;
+    }
+    .message .nickname {
+      font-weight: bold;
+    }
+    .message .ip {
+      color: #888;
+      font-size: 0.9em;
+    }
+  </style>
 </head>
 <body>
   <h1>Ably Chat App</h1>
@@ -16,39 +72,42 @@
   <button onclick="sendMessage()">Send</button>
 
   <script>
-    // Ably 설정
     var ably = new Ably.Realtime('eHvzyQ.RwLM_g:pmINJpg0ruujiu7EZCiHAdCAT5as7ds2jhSkaoJ3yyI');
     var channel = ably.channels.get('qpi-chat');
 
-    // 메시지 수신
     channel.subscribe('message', function(message) {
       displayMessage(message);
     });
 
-    // 메시지 전송
     function sendMessage() {
       var nickname = document.getElementById("nicknameInput").value;
       var message = document.getElementById("messageInput").value;
       var timestamp = Date.now();
-      
+      var ipAddress = "192.168.1.1"; // Mock IP address for example
+
       if (nickname && message) {
-        channel.publish('message', { nickname: nickname, text: message, timestamp: timestamp });
-        document.getElementById("messageInput").value = ""; // 입력창 비우기
+        channel.publish('message', { nickname: nickname, text: message, timestamp: timestamp, ip: ipAddress });
+        document.getElementById("messageInput").value = ""; // Clear input
       } else {
         alert('Please enter a nickname and a message.');
       }
     }
 
-    // 메시지 출력
     function displayMessage(message) {
       var data = message.data;
       var messageElement = document.createElement("div");
+      messageElement.className = "message";
+      
       var timeAgo = getTimeAgo(data.timestamp);
-      messageElement.textContent = `[${data.nickname}] ${data.text} (${timeAgo} ago)`;
+      messageElement.innerHTML = `
+        <span class="nickname">${data.nickname}</span> 
+        <span class="ip">(${data.ip.substring(0, 7)})</span><br>
+        ${data.text}<br>
+        <span class="timestamp">${timeAgo} ago</span>
+      `;
       document.getElementById("chatbox").appendChild(messageElement);
     }
 
-    // 경과 시간 계산
     function getTimeAgo(timestamp) {
       var now = Date.now();
       var seconds = Math.floor((now - timestamp) / 1000);
