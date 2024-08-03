@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ably Chat App</title>
   <script src="https://cdn.ably.io/lib/ably.min-1.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js"></script>
   <style>
+    /* CSS 스타일 */
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f4f4;
@@ -50,9 +53,6 @@
     button:hover {
       background-color: #0056b3;
     }
-    .message {
-      margin-bottom: 10px;
-    }
     .message .nickname {
       font-weight: bold;
     }
@@ -72,13 +72,41 @@
   <button onclick="sendMessage()">Send</button>
 
   <script>
+    // Firebase 설정
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    // Firebase 초기화
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Ably 설정
     var ably = new Ably.Realtime('eHvzyQ.RwLM_g:pmINJpg0ruujiu7EZCiHAdCAT5as7ds2jhSkaoJ3yyI');
     var channel = ably.channels.get('qpi-chat');
 
+    // 채팅 기록 불러오기
+    function loadMessages() {
+      db.collection('messages').orderBy('timestamp').onSnapshot((snapshot) => {
+        document.getElementById('chatbox').innerHTML = ''; // 기존 메시지 지우기
+        snapshot.forEach((doc) => {
+          displayMessage(doc.data());
+        });
+      });
+    }
+
+    // 메시지 수신
     channel.subscribe('message', function(message) {
-      displayMessage(message);
+      const data = message.data;
+      db.collection('messages').add(data); // Firestore에 메시지 저장
+      displayMessage(data);
     });
 
+    // 메시지 전송
     function sendMessage() {
       var nickname = document.getElementById("nicknameInput").value;
       var message = document.getElementById("messageInput").value;
@@ -87,14 +115,14 @@
 
       if (nickname && message) {
         channel.publish('message', { nickname: nickname, text: message, timestamp: timestamp, ip: ipAddress });
-        document.getElementById("messageInput").value = ""; // Clear input
+        document.getElementById("messageInput").value = ""; // 입력창 비우기
       } else {
         alert('Please enter a nickname and a message.');
       }
     }
 
-    function displayMessage(message) {
-      var data = message.data;
+    // 메시지 출력
+    function displayMessage(data) {
       var messageElement = document.createElement("div");
       messageElement.className = "message";
       
@@ -108,6 +136,7 @@
       document.getElementById("chatbox").appendChild(messageElement);
     }
 
+    // 경과 시간 계산
     function getTimeAgo(timestamp) {
       var now = Date.now();
       var seconds = Math.floor((now - timestamp) / 1000);
@@ -120,6 +149,9 @@
       if (minutes > 0) return minutes + " minutes";
       return seconds + " seconds";
     }
+
+    // 페이지 로드 시 메시지 불러오기
+    loadMessages();
   </script>
 </body>
 </html>
