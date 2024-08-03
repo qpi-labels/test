@@ -9,9 +9,9 @@ const port = 3000;
 
 // PubNub 설정
 const pubnub = new PubNub({
-  publishKey: 'YOUR_PUBNUB_PUBLISH_KEY',
-  subscribeKey: 'YOUR_PUBNUB_SUBSCRIBE_KEY',
-  secretKey: 'YOUR_PUBNUB_SECRET_KEY'
+  publishKey: 'pub-c-8d5df0e6-9822-4e53-8fb9-86b8655897ce',
+  subscribeKey: 'sub-c-85cc1c3a-2ef5-4f84-ae30-bd92c4cfbc2e',
+  secretKey: 'sec-c-MjFlYmNlNDMtOGY2OC00YTRmLWE2NTgtNTE0NjlkOTA1ZDNl'
 });
 
 // 파일 경로
