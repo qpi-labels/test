@@ -1,14 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ably Chat App</title>
-  <script src="https://cdn.ably.io/lib/ably.min-1.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js"></script>
+  <title>쿼터파이 채팅</title>
+  <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.32.0.min.js"></script>
   <style>
-    /* CSS 스타일 */
     body {
       font-family: Arial, sans-serif;
       background-color: #f4f4f4;
@@ -63,7 +60,7 @@
   </style>
 </head>
 <body>
-  <h1>Ably Chat App</h1>
+  <h1>PubNub Chat App</h1>
   <div>
     <input type="text" id="nicknameInput" placeholder="Enter your nickname">
   </div>
@@ -72,38 +69,34 @@
   <button onclick="sendMessage()">Send</button>
 
   <script>
-    // Firebase 설정
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-    // Firebase 초기화
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    // PubNub 설정
+    const pubnub = new PubNub({
+      publishKey: 'pub-c-8d5df0e6-9822-4e53-8fb9-86b8655897ce',
+      subscribeKey: 'sub-c-85cc1c3a-2ef5-4f84-ae30-bd92c4cfbc2e'
+    });
 
-    // Ably 설정
-    var ably = new Ably.Realtime('eHvzyQ.RwLM_g:pmINJpg0ruujiu7EZCiHAdCAT5as7ds2jhSkaoJ3yyI');
-    var channel = ably.channels.get('qpi-chat');
+    // 서버 URL
+    const serverUrl = 'http://localhost:3000';
 
-    // 채팅 기록 불러오기
+    // 메시지 불러오기
     function loadMessages() {
-      db.collection('messages').orderBy('timestamp').onSnapshot((snapshot) => {
-        document.getElementById('chatbox').innerHTML = ''; // 기존 메시지 지우기
-        snapshot.forEach((doc) => {
-          displayMessage(doc.data());
+      fetch(`${serverUrl}/messages`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('chatbox').innerHTML = ''; // 기존 메시지 지우기
+          data.forEach(message => displayMessage(message));
         });
-      });
     }
 
-    // 메시지 수신
-    channel.subscribe('message', function(message) {
-      const data = message.data;
-      db.collection('messages').add(data); // Firestore에 메시지 저장
-      displayMessage(data);
+    // PubNub을 통한 메시지 수신
+    pubnub.addListener({
+      message: function(event) {
+        displayMessage(event.message);
+      }
+    });
+
+    pubnub.subscribe({
+      channels: ['chat']
     });
 
     // 메시지 전송
@@ -114,8 +107,16 @@
       var ipAddress = "192.168.1.1"; // Mock IP address for example
 
       if (nickname && message) {
-        channel.publish('message', { nickname: nickname, text: message, timestamp: timestamp, ip: ipAddress });
-        document.getElementById("messageInput").value = ""; // 입력창 비우기
+        const messageData = { nickname, text: message, timestamp, ip: ipAddress };
+        fetch(`${serverUrl}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(messageData)
+        })
+        .then(() => {
+          document.getElementById("messageInput").value = ""; // 입력창 비우기
+        })
+        .catch(error => console.error('Error:', error));
       } else {
         alert('Please enter a nickname and a message.');
       }
