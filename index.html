@@ -1,80 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Google Sheets Community Board</title>
+  <title>GitHub Issues Community</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #newPost { margin-bottom: 20px; }
-    #posts { list-style-type: none; padding: 0; }
-    #posts li { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .issue { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+    .issue-title { font-size: 1.2em; margin: 0; }
+    .issue-body { margin: 10px 0; }
   </style>
 </head>
 <body>
 
-<h1>Google Sheets Community Board</h1>
+<h1>GitHub Issues Community</h1>
 
-<div id="newPost">
-  <h2>New Post</h2>
-  <input type="text" id="nickname" placeholder="Nickname" style="width: 100%;"><br><br>
-  <input type="text" id="postTitle" placeholder="Title" style="width: 100%;"><br><br>
-  <textarea id="postContent" rows="4" cols="50" placeholder="Write your post here..."></textarea><br>
-  <button onclick="addPost()">Post</button>
-</div>
-
-<ul id="posts"></ul>
+<div id="issues"></div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynRxnpJ1KMoOMteRdUx4YX7f_kuGTMC2McrkoY7PCtUzuuuVd5bm7GMHWX9nZFsRMl/exec';
+  // GitHub Repository 정보
+  const owner = 'YOUR_GITHUB_USERNAME';
+  const repo = 'YOUR_REPOSITORY_NAME';
+  const token = 'YOUR_PERSONAL_ACCESS_TOKEN';
 
-async function addPost() {
-  const nickname = document.getElementById('nickname').value;
-  const title = document.getElementById('postTitle').value;
-  const content = document.getElementById('postContent').value;
-
-  if (nickname.trim() === '' || title.trim() === '' || content.trim() === '') return;
-
-  const response = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      action: 'addPost',
-      nickname: nickname,
-      title: title,
-      content: content
-    })
-  });
-
-  if (response.ok) {
-    document.getElementById('nickname').value = '';
-    document.getElementById('postTitle').value = '';
-    document.getElementById('postContent').value = '';
-    loadPosts();
-  } else {
-    console.error('Error adding post:', response.statusText);
-  }
-}
-
-async function loadPosts() {
-  const response = await fetch(`${SCRIPT_URL}?action=getPosts`);
-  if (response.ok) {
-    const posts = await response.json();
-    const postsList = document.getElementById('posts');
-    postsList.innerHTML = '';
-    posts.forEach(post => {
-      const li = document.createElement('li');
-      li.innerHTML = `<h3>${post.title}</h3><p>${post.content}</p><p><em>posted by ${post.nickname}</em></p>`;
-      postsList.appendChild(li);
+  // 이슈 목록 가져오기
+  async function fetchIssues() {
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
+      headers: {
+        'Authorization': `token ${token}`
+      }
     });
-  } else {
-    console.error('Error loading posts:', response.statusText);
+    const issues = await response.json();
+    displayIssues(issues);
   }
-}
 
-// Load posts when the page loads
-loadPosts();
-</script>
-
-</body>
-</html>
+  // 이슈 표시하기
+  function displayIssues(issues) {
+    const issuesContainer = document.getElementById('issues');
+    issuesContainer.innerHTML = '';
+    issues.forEach(issue => {
+      const issueElement = document.createElement('div');
+      issueElement
