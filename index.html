@@ -1,41 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>GitHub Issues Community</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .issue { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
-    .issue-title { font-size: 1.2em; margin: 0; }
-    .issue-body { margin: 10px 0; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Issues Community</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #newPost { margin-bottom: 20px; }
+        #posts { list-style-type: none; padding: 0; }
+        #posts li { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        .post-content { margin-bottom: 10px; }
+        .post-author { font-size: 0.9em; color: #555; }
+    </style>
 </head>
 <body>
 
-<h1>GitHub Issues Community</h1>
+<h1>Community Board</h1>
 
-<div id="issues"></div>
+<div id="newPost">
+    <h2>New Post</h2>
+    <input type="text" id="nickname" placeholder="Nickname" style="width: 100%;"><br><br>
+    <input type="text" id="postTitle" placeholder="Title" style="width: 100%;"><br><br>
+    <textarea id="postContent" rows="4" cols="50" placeholder="Write your post here..."></textarea><br>
+    <button onclick="addPost()">Post</button>
+</div>
+
+<ul id="posts"></ul>
 
 <script>
-  // GitHub Repository 정보
-  const owner = 'qpi-labels';
-  const repo = 'test';
-  const token = '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';
+// GitHub 설정
+const USERNAME = 'qpi-labels;  // GitHub 사용자 이름
+const REPO = 'test;  // GitHub 저장소 이름
+const TOKEN = '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'; // GitHub Personal Access Token
 
-  // 이슈 목록 가져오기
-  async function fetchIssues() {
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
-      headers: {
-        'Authorization': `token ${token}`
-      }
-    });
+// 게시물 로드
+async function loadPosts() {
+    const response = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/issues`);
     const issues = await response.json();
-    displayIssues(issues);
-  }
+    const postsList = document.getElementById('posts');
+    postsList.innerHTML = '';
 
-  // 이슈 표시하기
-  function displayIssues(issues) {
-    const issuesContainer = document.getElementById('issues');
-    issuesContainer.innerHTML = '';
     issues.forEach(issue => {
-      const issueElement = document.createElement('div');
-      issueElement
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <h3>${issue.title}</h3>
+            <div class="post-content">${issue.body.replace(/\nposted by.*/, '')}</div>
+            <div class="post-author">Posted by ${issue.body.match(/posted by (.*)/)[1]}</div>
+        `;
+        postsList.appendChild(li);
+    });
+}
+
+// 게시물 추가
+async function addPost() {
+    const nickname = document.getElementById('nickname').value;
+    const title = document.getElementById('postTitle').value;
+    const content = document.getElementById('postContent').value;
+
+    if (nickname.trim() === '' || title.trim() === '' || content.trim() === '') return;
+
+    const newIssue = {
+        title: title,
+        body: `${content}\n\nposted by ${nickname}`
+    };
+
+    await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/issues`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `token ${TOKEN}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newIssue)
+    });
+
+    document.getElementById('nickname').value = '';
+    document.getElementById('postTitle').value = '';
+    document.getElementById('postContent').value = '';
+    loadPosts();
+}
+
+// 초기 로드
+loadPosts();
+</script>
+
+</body>
+</html>
