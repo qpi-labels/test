@@ -1,158 +1,80 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>쿼터파이 채팅</title>
-  <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.32.0.min.js"></script>
+  <title>Google Sheets Community Board</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-      text-align: center;
-    }
-    #chatbox {
-      border: 1px solid #ddd;
-      background: #fff;
-      padding: 10px;
-      height: 400px;
-      overflow-y: scroll;
-      margin-bottom: 20px;
-    }
-    .message {
-      border-bottom: 1px solid #ddd;
-      padding: 10px;
-    }
-    .message:last-child {
-      border-bottom: none;
-    }
-    #messageInput, #nicknameInput {
-      width: calc(100% - 110px);
-      padding: 10px;
-      margin: 5px;
-      box-sizing: border-box;
-    }
-    button {
-      width: 100px;
-      padding: 10px;
-      margin: 5px;
-      cursor: pointer;
-      background-color: #007bff;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .message .nickname {
-      font-weight: bold;
-    }
-    .message .ip {
-      color: #888;
-      font-size: 0.9em;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #newPost { margin-bottom: 20px; }
+    #posts { list-style-type: none; padding: 0; }
+    #posts li { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
   </style>
 </head>
 <body>
-  <h1>PubNub Chat App</h1>
-  <div>
-    <input type="text" id="nicknameInput" placeholder="Enter your nickname">
-  </div>
-  <div id="chatbox"></div>
-  <input type="text" id="messageInput" placeholder="Type a message...">
-  <button onclick="sendMessage()">Send</button>
 
-  <script>
-    // PubNub 설정
-    const pubnub = new PubNub({
-      publishKey: 'pub-c-8d5df0e6-9822-4e53-8fb9-86b8655897ce',
-      subscribeKey: 'sub-c-85cc1c3a-2ef5-4f84-ae30-bd92c4cfbc2e'
+<h1>Google Sheets Community Board</h1>
+
+<div id="newPost">
+  <h2>New Post</h2>
+  <input type="text" id="nickname" placeholder="Nickname" style="width: 100%;"><br><br>
+  <input type="text" id="postTitle" placeholder="Title" style="width: 100%;"><br><br>
+  <textarea id="postContent" rows="4" cols="50" placeholder="Write your post here..."></textarea><br>
+  <button onclick="addPost()">Post</button>
+</div>
+
+<ul id="posts"></ul>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/1OgGYodacDToz2qTeVtQmNEYg-wRIyLRxp3o_5gC_ihQ/exec';
+
+async function addPost() {
+  const nickname = document.getElementById('nickname').value;
+  const title = document.getElementById('postTitle').value;
+  const content = document.getElementById('postContent').value;
+
+  if (nickname.trim() === '' || title.trim() === '' || content.trim() === '') return;
+
+  const response = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      action: 'addPost',
+      nickname: nickname,
+      title: title,
+      content: content
+    })
+  });
+
+  if (response.ok) {
+    document.getElementById('nickname').value = '';
+    document.getElementById('postTitle').value = '';
+    document.getElementById('postContent').value = '';
+    loadPosts();
+  } else {
+    console.error('Error adding post:', response.statusText);
+  }
+}
+
+async function loadPosts() {
+  const response = await fetch(`${SCRIPT_URL}?action=getPosts`);
+  if (response.ok) {
+    const posts = await response.json();
+    const postsList = document.getElementById('posts');
+    postsList.innerHTML = '';
+    posts.forEach(post => {
+      const li = document.createElement('li');
+      li.innerHTML = `<h3>${post.title}</h3><p>${post.content}</p><p><em>posted by ${post.nickname}</em></p>`;
+      postsList.appendChild(li);
     });
+  } else {
+    console.error('Error loading posts:', response.statusText);
+  }
+}
 
-    // 서버 URL
-    const serverUrl = 'http://localhost:3000';
+// Load posts when the page loads
+loadPosts();
+</script>
 
-    // 메시지 불러오기
-    function loadMessages() {
-      fetch(`${serverUrl}/messages`)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('chatbox').innerHTML = ''; // 기존 메시지 지우기
-          data.forEach(message => displayMessage(message));
-        });
-    }
-
-    // PubNub을 통한 메시지 수신
-    pubnub.addListener({
-      message: function(event) {
-        displayMessage(event.message);
-      }
-    });
-
-    pubnub.subscribe({
-      channels: ['chat']
-    });
-
-    // 메시지 전송
-    function sendMessage() {
-      var nickname = document.getElementById("nicknameInput").value;
-      var message = document.getElementById("messageInput").value;
-      var timestamp = Date.now();
-      var ipAddress = "192.168.1.1"; // Mock IP address for example
-
-      if (nickname && message) {
-        const messageData = { nickname, text: message, timestamp, ip: ipAddress };
-        fetch(`${serverUrl}/messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(messageData)
-        })
-        .then(() => {
-          document.getElementById("messageInput").value = ""; // 입력창 비우기
-        })
-        .catch(error => console.error('Error:', error));
-      } else {
-        alert('Please enter a nickname and a message.');
-      }
-    }
-
-    // 메시지 출력
-    function displayMessage(data) {
-      var messageElement = document.createElement("div");
-      messageElement.className = "message";
-      
-      var timeAgo = getTimeAgo(data.timestamp);
-      messageElement.innerHTML = `
-        <span class="nickname">${data.nickname}</span> 
-        <span class="ip">(${data.ip.substring(0, 7)})</span><br>
-        ${data.text}<br>
-        <span class="timestamp">${timeAgo} ago</span>
-      `;
-      document.getElementById("chatbox").appendChild(messageElement);
-    }
-
-    // 경과 시간 계산
-    function getTimeAgo(timestamp) {
-      var now = Date.now();
-      var seconds = Math.floor((now - timestamp) / 1000);
-      var minutes = Math.floor(seconds / 60);
-      var hours = Math.floor(minutes / 60);
-      var days = Math.floor(hours / 24);
-
-      if (days > 0) return days + " days";
-      if (hours > 0) return hours + " hours";
-      if (minutes > 0) return minutes + " minutes";
-      return seconds + " seconds";
-    }
-
-    // 페이지 로드 시 메시지 불러오기
-    loadMessages();
-  </script>
 </body>
 </html>
