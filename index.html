@@ -1,80 +1,13 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Google Sheets Community Board</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #newPost { margin-bottom: 20px; }
-    #posts { list-style-type: none; padding: 0; }
-    #posts li { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
-  </style>
-</head>
-<body>
-
-<h1>Google Sheets Community Board</h1>
-
-<div id="newPost">
-  <h2>New Post</h2>
-  <input type="text" id="nickname" placeholder="Nickname" style="width: 100%;"><br><br>
-  <input type="text" id="postTitle" placeholder="Title" style="width: 100%;"><br><br>
-  <textarea id="postContent" rows="4" cols="50" placeholder="Write your post here..."></textarea><br>
-  <button onclick="addPost()">Post</button>
-</div>
-
-<ul id="posts"></ul>
-
-<script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynRxnpJ1KMoOMteRdUx4YX7f_kuGTMC2McrkoY7PCtUzuuuVd5bm7GMHWX9nZFsRMl/exec';
-
-async function addPost() {
-  const nickname = document.getElementById('nickname').value;
-  const title = document.getElementById('postTitle').value;
-  const content = document.getElementById('postContent').value;
-
-  if (nickname.trim() === '' || title.trim() === '' || content.trim() === '') return;
-
-  const response = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: new URLSearchParams({
-      action: 'addPost',
-      nickname: nickname,
-      title: title,
-      content: content
-    })
-  });
-
-  if (response.ok) {
-    document.getElementById('nickname').value = '';
-    document.getElementById('postTitle').value = '';
-    document.getElementById('postContent').value = '';
-    loadPosts();
-  } else {
-    console.error('Error adding post:', response.statusText);
-  }
-}
-
-async function loadPosts() {
-  const response = await fetch(`${SCRIPT_URL}?action=getPosts`);
-  if (response.ok) {
-    const posts = await response.json();
-    const postsList = document.getElementById('posts');
-    postsList.innerHTML = '';
-    posts.forEach(post => {
-      const li = document.createElement('li');
-      li.innerHTML = `<h3>${post.title}</h3><p>${post.content}</p><p><em>posted by ${post.nickname}</em></p>`;
-      postsList.appendChild(li);
-    });
-  } else {
-    console.error('Error loading posts:', response.statusText);
-  }
-}
-
-// Load posts when the page loads
-loadPosts();
+<!--Start of Tawk.to Script-->
+<script type="text/javascript">
+var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+(function(){
+var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+s1.async=true;
+s1.src='https://embed.tawk.to/66af17ec1601a2195ba08990/1i4dvat9n';
+s1.charset='UTF-8';
+s1.setAttribute('crossorigin','*');
+s0.parentNode.insertBefore(s1,s0);
+})();
 </script>
-
-</body>
-</html>
+<!--End of Tawk.to Script-->
