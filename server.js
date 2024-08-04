@@ -1,61 +1,80 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const fs = require('fs');
-const PubNub = require('pubnub');
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Sheets Community Board</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #newPost { margin-bottom: 20px; }
+    #posts { list-style-type: none; padding: 0; }
+    #posts li { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+  </style>
+</head>
+<body>
 
-const app = express();
-const port = 3000;
+<h1>Google Sheets Community Board</h1>
 
-// PubNub 설정
-const pubnub = new PubNub({
-  publishKey: 'pub-c-8d5df0e6-9822-4e53-8fb9-86b8655897ce',
-  subscribeKey: 'sub-c-85cc1c3a-2ef5-4f84-ae30-bd92c4cfbc2e',
-  secretKey: 'sec-c-MjFlYmNlNDMtOGY2OC00YTRmLWE2NTgtNTE0NjlkOTA1ZDNl'
-});
+<div id="newPost">
+  <h2>New Post</h2>
+  <input type="text" id="nickname" placeholder="Nickname" style="width: 100%;"><br><br>
+  <input type="text" id="postTitle" placeholder="Title" style="width: 100%;"><br><br>
+  <textarea id="postContent" rows="4" cols="50" placeholder="Write your post here..."></textarea><br>
+  <button onclick="addPost()">Post</button>
+</div>
 
-// 파일 경로
-const messagesFile = 'messages.json';
+<ul id="posts"></ul>
 
-// 메시지 저장소 (파일 기반)
-let messages = [];
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/1OgGYodacDToz2qTeVtQmNEYg-wRIyLRxp3o_5gC_ihQ/exec';
 
-// 파일에서 메시지 로드
-if (fs.existsSync(messagesFile)) {
-  messages = JSON.parse(fs.readFileSync(messagesFile, 'utf8'));
-}
+async function addPost() {
+  const nickname = document.getElementById('nickname').value;
+  const title = document.getElementById('postTitle').value;
+  const content = document.getElementById('postContent').value;
 
-app.use(cors());
-app.use(bodyParser.json());
+  if (nickname.trim() === '' || title.trim() === '' || content.trim() === '') return;
 
-// 모든 메시지 가져오기
-app.get('/messages', (req, res) => {
-  res.json(messages);
-});
-
-// 메시지 전송
-app.post('/messages', (req, res) => {
-  const message = req.body;
-  messages.push(message);
-
-  // 파일에 저장
-  fs.writeFileSync(messagesFile, JSON.stringify(messages, null, 2));
-
-  // PubNub을 통해 클라이언트에 메시지 전송
-  pubnub.publish({
-    channel: 'chat',
-    message: message
-  }, (status, response) => {
-    if (status.error) {
-      console.log("Publish error: ", status);
-    } else {
-      console.log("Message Published: ", response);
-    }
+  const response = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      action: 'addPost',
+      nickname: nickname,
+      title: title,
+      content: content
+    })
   });
 
-  res.status(200).send('Message sent');
-});
+  if (response.ok) {
+    document.getElementById('nickname').value = '';
+    document.getElementById('postTitle').value = '';
+    document.getElementById('postContent').value = '';
+    loadPosts();
+  } else {
+    console.error('Error adding post:', response.statusText);
+  }
+}
 
-app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
-});
+async function loadPosts() {
+  const response = await fetch(`${SCRIPT_URL}?action=getPosts`);
+  if (response.ok) {
+    const posts = await response.json();
+    const postsList = document.getElementById('posts');
+    postsList.innerHTML = '';
+    posts.forEach(post => {
+      const li = document.createElement('li');
+      li.innerHTML = `<h3>${post.title}</h3><p>${post.content}</p><p><em>posted by ${post.nickname}</em></p>`;
+      postsList.appendChild(li);
+    });
+  } else {
+    console.error('Error loading posts:', response.statusText);
+  }
+}
+
+// Load posts when the page loads
+loadPosts();
+</script>
+
+</body>
+</html>
